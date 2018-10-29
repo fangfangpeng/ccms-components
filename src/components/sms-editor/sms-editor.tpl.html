@@ -46,6 +46,16 @@
 			<span style="color: #f48b13">右侧字数提醒将视其为普通文案计数在内</span>
 			<span class="angle" ng-style="ctrl.angleStyle"></span>
 		</div>
+		<!--短信内容为百分比tips-->
+		<div ng-style="ctrl.percentTipsPosition" id="percentTip" class="short-link-percent-tip" ng-class="ctrl.showPercentTips ? 'show-tips' : 'hide-tips'">
+			<div class="short-link-percent-text">{{ctrl.opts.shortLinkPercentTip}}</div>
+			<div class="short-link-split"/>
+			<div class="short-link-percent-btn">
+				<span><cc-checkbox ng-checked="ctrl.percentChecked" ng-click="ctrl.onPercentCheck()"><span>不再提示</span></cc-checkbox></span>
+				<span ng-click="ctrl.hideTips()">我知道了</span>
+			</div>
+			<span class="top-angle" ng-style="ctrl.angleStyle"></span>
+		</div>
 	</div>
 	<div class="sms-temp" ng-model="ctrl._tempText" style="display: none"></div>
 </div>

@@ -18,6 +18,9 @@ const BRACKET_REG = /[【】]/g;
 export default class SMSEditorCtrl {
 	constructor($scope, $element) {
 		this.showTips = false;
+		this.showPercentTips = false;
+		this.trulyHide = false;
+		this.percentChecked = false;
 		this.createInput = this.createInput.bind(this);
 		this.parseHTML = this.parseHTML.bind(this);
 		this.insertKeyword = this.insertKeyword.bind(this);
@@ -541,6 +544,7 @@ export default class SMSEditorCtrl {
 			this._hasUrl = REG_URL.test(this.opts.text) && !REG_URL_HASH.test(this.opts.text);
 		}
 	}
+
 	/**
 	 * 添加短链提示效果
 	 * @param currentTag 包含当前复制内容的元素
@@ -552,20 +556,43 @@ export default class SMSEditorCtrl {
 			this.setToolTip(currentTag, true);
 			showTip = this._$timeout(() => {
 				this._$timeout.cancel(showTip);
+
 				this.setToolTip(currentTag, false);
-			}, 10000);
+			}, 100000000000);
 		}
 
 		// 鼠标划入显示
 		currentTag.onmouseenter = () => {
 			this._$timeout.cancel(showTip);
+			if (this.isPercentInput(currentTag)) {
+				return;
+			}
 			this.setToolTip(currentTag, true);
 		};
 		// 鼠标划出不显示
 		currentTag.onmouseleave = () => {
 			this._$timeout.cancel(showTip);
+			if (this.isPercentInput(currentTag)) {
+				return;
+			}
 			this.setToolTip(currentTag, false);
 		};
+	}
+	isPercentInput(currentTag) {
+		const text = currentTag.innerText;
+		if (this.includedShortLink(text) === '%') {
+			return true;
+		}
+		return false;
+	}
+	hideTips(param) {
+		if (this.percentChecked) {
+			this.trulyHide = true;
+		}
+		this.showPercentTips = false;
+	}
+	onPercentCheck() {
+		this.percentChecked = !this.percentChecked;
 	}
 	/**
 	 * 设置是否显示提示信息
@@ -581,8 +608,14 @@ export default class SMSEditorCtrl {
 		const TIP_HEIGHT = window.getComputedStyle(tip).getPropertyValue('height').split('px')[0] * 1 + window.getComputedStyle(tip).getPropertyValue('padding-top').split('px')[0] * 2 + UI_SPACE_TOP;
 		const showTip = this._$timeout(() => {
 			this._$timeout.cancel(showTip);
-			this.showTips = showFlag;
-			if (showFlag) {
+			if (this.isPercentInput(currentTag)) {
+				if (!this.trulyHide) {
+					this.showPercentTips = showFlag;
+				}
+			} else {
+				this.showTips = showFlag;
+			}
+			if (this.showTips) {
 				const tipPosition = this.positionCompute(currentTag, parentEle, TIP_WIDTH);
 				this.tipsPosition = {
 					left: tipPosition.newLeft + 'px',
@@ -590,6 +623,19 @@ export default class SMSEditorCtrl {
 				};
 				this.angleStyle = {
 					left: tipPosition.angleLeft + 'px'
+				};
+			}
+			if (this.showPercentTips && this.isPercentInput(currentTag)) {
+				const percentTip = document.getElementById('percentTip');
+				const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
+				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 120;
+				const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
+				this.percentTipsPosition = {
+					left: tipPercentPosition.newLeft + 'px',
+					top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT + 'px' : currentTag.offsetTop - PER_TIP_HEIGHT + 'px'
+				};
+				this.angleStyle = {
+					left: tipPercentPosition.angleLeft + 'px'
 				};
 			}
 		}, 0);
@@ -694,6 +740,9 @@ export default class SMSEditorCtrl {
 		}
 		if (string.indexOf('t.cn') > -1) {
 			return 't.cn';
+		}
+		if (string.indexOf('%') > -1) {
+			return '%';
 		}
 		return false;
 	}
