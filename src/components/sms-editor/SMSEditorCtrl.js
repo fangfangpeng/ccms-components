@@ -554,11 +554,13 @@ export default class SMSEditorCtrl {
 		// 计时
 		if (autoShow) {
 			this.setToolTip(currentTag, true);
+			if (this.isPercentInput(currentTag)) {
+				return;
+			}
 			showTip = this._$timeout(() => {
 				this._$timeout.cancel(showTip);
-
 				this.setToolTip(currentTag, false);
-			}, 100000000000);
+			}, 10000);
 		}
 
 		// 鼠标划入显示
@@ -604,11 +606,12 @@ export default class SMSEditorCtrl {
 		const UI_SPACE_TOP = 6;
 		const parentEle = document.getElementById('sms-content-holder').querySelector('#sms-content');
 		const tip = document.getElementById('tip');
+		const isPercent = this.isPercentInput(currentTag);
 		const TIP_WIDTH = window.getComputedStyle(tip).getPropertyValue('width').split('px')[0] * 1 + window.getComputedStyle(tip).getPropertyValue('padding-right').split('px')[0] * 1;
 		const TIP_HEIGHT = window.getComputedStyle(tip).getPropertyValue('height').split('px')[0] * 1 + window.getComputedStyle(tip).getPropertyValue('padding-top').split('px')[0] * 2 + UI_SPACE_TOP;
 		const showTip = this._$timeout(() => {
 			this._$timeout.cancel(showTip);
-			if (this.isPercentInput(currentTag)) {
+			if (isPercent) {
 				if (!this.trulyHide) {
 					this.showPercentTips = showFlag;
 				}
@@ -625,7 +628,7 @@ export default class SMSEditorCtrl {
 					left: tipPosition.angleLeft + 'px'
 				};
 			}
-			if (this.showPercentTips && this.isPercentInput(currentTag)) {
+			if (this.showPercentTips && isPercent) {
 				const percentTip = document.getElementById('percentTip');
 				const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
 				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 120;
@@ -732,6 +735,9 @@ export default class SMSEditorCtrl {
 		}
 	}
 	includedShortLink(string) {
+		if (string.indexOf('%') > -1) {
+			return '%';
+		}
 		if (string.indexOf('c.tb.cn') > -1) {
 			return 'c.tb.cn';
 		}
@@ -740,9 +746,6 @@ export default class SMSEditorCtrl {
 		}
 		if (string.indexOf('t.cn') > -1) {
 			return 't.cn';
-		}
-		if (string.indexOf('%') > -1) {
-			return '%';
 		}
 		return false;
 	}
