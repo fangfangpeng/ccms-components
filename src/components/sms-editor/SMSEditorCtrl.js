@@ -587,7 +587,7 @@ export default class SMSEditorCtrl {
 		}
 		return false;
 	}
-	hideTips(param) {
+	hidePercentTips(param) {
 		if (this.percentChecked) {
 			this.trulyHide = true;
 		}
@@ -631,7 +631,7 @@ export default class SMSEditorCtrl {
 			if (this.showPercentTips && isPercent) {
 				const percentTip = document.getElementById('percentTip');
 				const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
-				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 120;
+				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 114;
 				const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
 				this.percentTipsPosition = {
 					left: tipPercentPosition.newLeft + 'px',
