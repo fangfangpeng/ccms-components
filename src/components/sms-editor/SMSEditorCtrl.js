@@ -633,6 +633,9 @@ export default class SMSEditorCtrl {
 				const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
 				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 114;
 				const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
+				if (tipPercentPosition.angleLeft > 175) {
+					tipPercentPosition.angleLeft = 175;
+				}
 				this.percentTipsPosition = {
 					left: tipPercentPosition.newLeft + 'px',
 					top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT + 'px' : currentTag.offsetTop - PER_TIP_HEIGHT + 'px'
