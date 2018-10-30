@@ -128,7 +128,7 @@
 }
 .short-link-percent-btn {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
   bottom: 0px;
   height: 34px;
@@ -136,17 +136,25 @@
   span {
    cursor: pointer; 
   }
-  span:nth-child(1) {
+  > span:nth-child(1) {
     font-family: 'MicrosoftYaHei';
     font-size: 12px;
     color: #666666;
     line-height: 12px;
+    position: relative;
+    left: 14px;
   }
-  span:nth-child(2) {
+  > span:nth-child(2) {
     font-family: 'PingFangSC-Regular';
     font-size: 12px;
     color: #0092ef;
     line-height: 12px;
+    position: relative;
+    right: 14px;
+  }
+  .short-inner-check {
+    position: relative; 
+    left: -7px;
   }
 }
 .short-link-split {
