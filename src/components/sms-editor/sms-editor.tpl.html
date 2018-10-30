@@ -22,8 +22,8 @@
 	<div class="sms-content-holder" id="sms-content-holder" style="position: relative">
 		<div contenteditable="{{!ctrl.opts.disabled}}"
 			 data-content
-			 ng-keyup="ctrl.onChange()"
-			 ng-mouseup="ctrl.onChange()"
+			 ng-keyup="ctrl.onChange(event)"
+			 ng-mouseup="ctrl.onChange(event)"
 			 ng-keypress="ctrl.checkoutShortLink()"
 			 ng-class="'sms-content' + (ctrl.keywordTypes.length <= 1 ? ' sms-no-keyword-types' : '')"
 			 ng-paste="ctrl.onPaste($event)"
@@ -54,7 +54,7 @@
 				<span><cc-checkbox ng-checked="ctrl.percentChecked" ng-click="ctrl.onPercentCheck()"><span>不再提示</span></cc-checkbox></span>
 				<span ng-click="ctrl.hidePercentTips()">我知道了</span>
 			</div>
-			<span class="top-angle" ng-style="ctrl.angleStyle"></span>
+			<span class="top-angle"></span>
 		</div>
 	</div>
 	<div class="sms-temp" ng-model="ctrl._tempText" style="display: none"></div>

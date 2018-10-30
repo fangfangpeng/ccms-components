@@ -386,6 +386,9 @@ export default class SMSEditorCtrl {
 			.replace(/%([^%]+)%/g, (result, $1) => {
 				return `<span class="sms-tag-preview">${$1.trim()}</span>`;
 			})
+			.replace(/([%]+)/g, (result, $1) => {
+				return `<a href="javascript: void(0);">${$1.trim()}</a>`;
+			})
 			.replace(REG_URL_HASH, result => {
 				return `<a href="javascript: void(0);">${result.slice(0, result.length - 1)}</a>#`;
 			})
@@ -492,7 +495,7 @@ export default class SMSEditorCtrl {
 	 * 文本修改后, 重置预览文本和最终结果
 	 * - !!! 输入时, 过滤【 和 】
 	 */
-	onChange() {
+	onChange(evt) {
 		this.rememberFocus();
 
 		if (BRACKET_REG.test(this._content.innerHTML)) {
@@ -582,7 +585,17 @@ export default class SMSEditorCtrl {
 	}
 	isPercentInput(currentTag) {
 		const text = currentTag.innerText;
-		if (this.includedShortLink(text) === '%') {
+		if (this.includedShortLink(text) === '%' && text.endsWith('%')) {
+			return true;
+		}
+		return false;
+	}
+	endsWithShortLink(currentTag) {
+		const text = currentTag.innerText;
+		if (this.includedShortLink(text) ||
+			text.endsWith('c.tb.cn') ||
+			text.endsWith('vcrm.me') ||
+			text.endsWith('t.cn')) {
 			return true;
 		}
 		return false;
@@ -604,6 +617,7 @@ export default class SMSEditorCtrl {
 	 */
 	setToolTip(currentTag, showFlag) {
 		const UI_SPACE_TOP = 6;
+		const UI_SPACE_LEFT = 6;
 		const parentEle = document.getElementById('sms-content-holder').querySelector('#sms-content');
 		const tip = document.getElementById('tip');
 		const isPercent = this.isPercentInput(currentTag);
@@ -615,6 +629,7 @@ export default class SMSEditorCtrl {
 				if (!this.trulyHide) {
 					this.showPercentTips = showFlag;
 				}
+				this.showTips = false;
 			} else {
 				this.showTips = showFlag;
 			}
@@ -633,11 +648,8 @@ export default class SMSEditorCtrl {
 				const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
 				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 114;
 				const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
-				if (tipPercentPosition.angleLeft > 175) {
-					tipPercentPosition.angleLeft = 175;
-				}
 				this.percentTipsPosition = {
-					left: tipPercentPosition.newLeft + 'px',
+					left: tipPercentPosition.newLeft - UI_SPACE_LEFT + 'px',
 					top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT + 'px' : currentTag.offsetTop - PER_TIP_HEIGHT + 'px'
 				};
 				this.angleStyle = {
@@ -680,7 +692,7 @@ export default class SMSEditorCtrl {
 		const textContent = event.clipboardData.getData('text/plain');
 		const selection = document.getSelection();
 		const shortLinkHead = this.includedShortLink(textContent);
-		if (this.opts.shortLinkTip && shortLinkHead) {
+		if ((this.opts.shortLinkTip || this.opts.shortLinkPercentTip) && shortLinkHead) {
 			document.execCommand('insertHTML', false, `<span>${textContent}</span>`);
 			const startSetOff = selection.focusNode.textContent.indexOf(shortLinkHead);
 			this.transformToATag(selection, startSetOff, shortLinkHead.length);
@@ -691,7 +703,7 @@ export default class SMSEditorCtrl {
 		}
 	}
 	checkoutShortLink() {
-		if (this.opts.shortLinkTip) {
+		if (this.opts.shortLinkTip || this.opts.shortLinkPercentTip) {
 			window.requestAnimationFrame(() => {
 				if (!this.includedShortLink(this._content.innerHTML)) {
 					this.showTips = false;
@@ -728,7 +740,7 @@ export default class SMSEditorCtrl {
 		insertRange.setEnd(selection.focusNode, startOffset + contentLength);
 		selection.removeAllRanges();
 		selection.addRange(insertRange);
-		document.execCommand('CreateLink', false, ' ');
+		document.execCommand('insertHTML', false, `<a href=" ">${selection.focusNode.textContent.trim()}</a>`);
 		const currentNode = selection.focusNode.parentNode;
 		this.handleTooltip(currentNode);
 		if (currentNode.nextSibling) {
