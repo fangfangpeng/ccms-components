@@ -618,45 +618,49 @@ export default class SMSEditorCtrl {
 	setToolTip(currentTag, showFlag) {
 		const UI_SPACE_TOP = 6;
 		const UI_SPACE_LEFT = 6;
+		const MAX_PARENT_HEIGHT = 160;
 		const parentEle = document.getElementById('sms-content-holder').querySelector('#sms-content');
 		const tip = document.getElementById('tip');
 		const isPercent = this.isPercentInput(currentTag);
 		const TIP_WIDTH = window.getComputedStyle(tip).getPropertyValue('width').split('px')[0] * 1 + window.getComputedStyle(tip).getPropertyValue('padding-right').split('px')[0] * 1;
 		const TIP_HEIGHT = window.getComputedStyle(tip).getPropertyValue('height').split('px')[0] * 1 + window.getComputedStyle(tip).getPropertyValue('padding-top').split('px')[0] * 2 + UI_SPACE_TOP;
-		const showTip = this._$timeout(() => {
-			this._$timeout.cancel(showTip);
-			if (isPercent) {
-				if (!this.trulyHide) {
-					this.showPercentTips = showFlag;
-				}
-				this.showTips = false;
-			} else {
-				this.showTips = showFlag;
+		// const showTip = this._$timeout(() => {
+		// this._$timeout.cancel(showTip);
+		if (isPercent) {
+			if (!this.trulyHide) {
+				this.showPercentTips = showFlag;
 			}
-			if (this.showTips) {
-				const tipPosition = this.positionCompute(currentTag, parentEle, TIP_WIDTH);
-				this.tipsPosition = {
-					left: tipPosition.newLeft + 'px',
-					top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - TIP_HEIGHT + 'px' : currentTag.offsetTop - TIP_HEIGHT + 'px'
-				};
-				this.angleStyle = {
-					left: tipPosition.angleLeft + 'px'
-				};
-			}
-			if (this.showPercentTips && isPercent) {
-				const percentTip = document.getElementById('percentTip');
-				const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
-				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 114;
-				const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
-				this.percentTipsPosition = {
-					left: tipPercentPosition.newLeft - UI_SPACE_LEFT + 'px',
-					top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT + 'px' : currentTag.offsetTop - PER_TIP_HEIGHT + 'px'
-				};
-				this.angleStyle = {
-					left: tipPercentPosition.angleLeft + 'px'
-				};
-			}
-		}, 0);
+			this.showTips = false;
+		} else {
+			this.showTips = showFlag;
+		}
+		if (this.showTips) {
+			const tipPosition = this.positionCompute(currentTag, parentEle, TIP_WIDTH);
+			this.tipsPosition = {
+				left: tipPosition.newLeft + 'px',
+				top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - TIP_HEIGHT + 'px' : currentTag.offsetTop - TIP_HEIGHT + 'px'
+			};
+			this.angleStyle = {
+				left: tipPosition.angleLeft + 'px'
+			};
+		}
+		if (this.showPercentTips && isPercent) {
+			const percentTip = document.getElementById('percentTip');
+			const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
+			const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 114;
+			const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
+			const osTop = currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT >= MAX_PARENT_HEIGHT
+						? MAX_PARENT_HEIGHT
+						: currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT;
+			this.percentTipsPosition = {
+				left: tipPercentPosition.newLeft - UI_SPACE_LEFT + 'px',
+				top: parentEle.scrollTop > 0 ? osTop + 'px' : currentTag.offsetTop - PER_TIP_HEIGHT + 'px'
+			};
+			this.anglePercentStyle = {
+				left: tipPercentPosition.angleLeft + 'px'
+			};
+		}
+		// }, 0);
 	}
 
 	positionCompute(currentTag, parentEle, tipWidth) {
@@ -667,15 +671,15 @@ export default class SMSEditorCtrl {
 		const UI_SPACE_LEFT = 12;
 		if (changeFlag > parentEleWidth) {
 			const newLeft = currentTag.offsetLeft - UI_SPACE_LEFT - (currentPositionLeft + tipWidth - parentEleWidth);
-			const angleLeft = currentPositionLeft - newLeft;
+			const angleLeft = currentPositionLeft - newLeft + 6;
 			return {
 				newLeft,
 				angleLeft
 			};
 		}
 		return {
-			newLeft: currentTag.offsetLeft - UI_SPACE_LEFT,
-			angleLeft: currentWidth
+			newLeft: currentTag.offsetLeft - UI_SPACE_LEFT + currentWidth,
+			angleLeft: currentWidth + 6
 		};
 	}
 
@@ -691,11 +695,35 @@ export default class SMSEditorCtrl {
 		e.preventDefault();
 		const textContent = event.clipboardData.getData('text/plain');
 		const selection = document.getSelection();
-		const shortLinkHead = this.includedShortLink(textContent);
+		let shortLinkHead = this.includedShortLink(textContent);
 		if ((this.opts.shortLinkTip || this.opts.shortLinkPercentTip) && shortLinkHead) {
-			document.execCommand('insertHTML', false, `<span>${textContent}</span>`);
-			const startSetOff = selection.focusNode.textContent.indexOf(shortLinkHead);
-			this.transformToATag(selection, startSetOff, shortLinkHead.length);
+			let index1 = -1;
+			let index2 = -1;
+			let shortLinks = '';
+			if (textContent.indexOf('%') > -1) {
+				index1 = textContent.indexOf('%');
+				shortLinks = textContent.substr(index1, 1);
+			}
+			if (textContent.indexOf('c.tb.cn') > -1) {
+				index2 = textContent.indexOf('c.tb.cn');
+				shortLinkHead = textContent.substr(index2, 7);
+			} else if (textContent.indexOf('vcrm.me') > -1) {
+				index2 = textContent.indexOf('vcrm.me');
+				shortLinkHead = textContent.substr(index2, 6);
+			} else if (textContent.indexOf('t.cn') > -1) {
+				index2 = textContent.indexOf('t.cn');
+				shortLinkHead = textContent.substr(index2, 4);
+			}
+			if (index1 > -1) {
+				document.execCommand('insertHTML', false, `<span>${shortLinks}</span>`);
+				const startSetOff = selection.focusNode.textContent.indexOf(shortLinks);
+				this.transformToATag(selection, startSetOff, shortLinks.length);
+			}
+			if (index2 > -1) {
+				document.execCommand('insertHTML', false, `<span>${shortLinkHead}</span>`);
+				const startSetOff = selection.focusNode.textContent.indexOf(shortLinkHead);
+				this.transformToATag(selection, startSetOff, shortLinkHead.length);
+			}
 		} else {
 			this._hasInvalidStr = BRACKET_REG.test(textContent);
 			this._invalidStrClosed = !this._hasInvalidStr;
@@ -740,7 +768,7 @@ export default class SMSEditorCtrl {
 		insertRange.setEnd(selection.focusNode, startOffset + contentLength);
 		selection.removeAllRanges();
 		selection.addRange(insertRange);
-		document.execCommand('insertHTML', false, `<a href=" ">${selection.focusNode.textContent.trim()}</a>`);
+		document.execCommand('CreateLink', false, ' ');
 		const currentNode = selection.focusNode.parentNode;
 		this.handleTooltip(currentNode);
 		if (currentNode.nextSibling) {

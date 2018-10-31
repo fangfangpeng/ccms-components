@@ -54,7 +54,7 @@
 				<span><cc-checkbox ng-checked="ctrl.percentChecked" ng-click="ctrl.onPercentCheck()"><span class="short-inner-check">不再提示</span></cc-checkbox></span>
 				<span ng-click="ctrl.hidePercentTips()">我知道了</span>
 			</div>
-			<span class="top-angle"></span>
+			<span class="top-angle" ng-style="ctrl.anglePercentStyle"></span>
 		</div>
 	</div>
 	<div class="sms-temp" ng-model="ctrl._tempText" style="display: none"></div>
