@@ -21,6 +21,7 @@ export default class SMSEditorCtrl {
 		this.showPercentTips = false;
 		this.trulyHide = false;
 		this.percentChecked = false;
+		this.isPasting = false;
 		this.createInput = this.createInput.bind(this);
 		this.parseHTML = this.parseHTML.bind(this);
 		this.insertKeyword = this.insertKeyword.bind(this);
@@ -497,7 +498,7 @@ export default class SMSEditorCtrl {
 	 */
 	onChange(evt) {
 		this.rememberFocus();
-
+		this.checkoutShortLink(evt);
 		if (BRACKET_REG.test(this._content.innerHTML)) {
 
 			// 记录初始光标
@@ -541,6 +542,12 @@ export default class SMSEditorCtrl {
 			}
 
 			selection.addRange(range);
+			if (!this.includedShortLink(this._content.innerHTML)) {
+				this.showTips = false;
+			}
+			if (!this.inCludedPercentShortLink(this._content.innerHTML)) {
+				this.showPercentTips = false;
+			}
 		} else {
 			this.parseHTML();
 			this.checkEmpty();
@@ -552,17 +559,17 @@ export default class SMSEditorCtrl {
 	 * 添加短链提示效果
 	 * @param currentTag 包含当前复制内容的元素
 	 */
-	handleTooltip(currentTag, autoShow = true) {
+	handleTooltip(currentTag, autoShow = true, onpaste) {
 		let showTip = null;
 		// 计时
 		if (autoShow) {
-			this.setToolTip(currentTag, true);
+			this.setToolTip(currentTag, true, onpaste);
 			if (this.isPercentInput(currentTag)) {
 				return;
 			}
 			showTip = this._$timeout(() => {
 				this._$timeout.cancel(showTip);
-				this.setToolTip(currentTag, false);
+				this.setToolTip(currentTag, false, onpaste);
 			}, 10000);
 		}
 
@@ -572,7 +579,7 @@ export default class SMSEditorCtrl {
 			if (this.isPercentInput(currentTag)) {
 				return;
 			}
-			this.setToolTip(currentTag, true);
+			this.setToolTip(currentTag, true, onpaste);
 		};
 		// 鼠标划出不显示
 		currentTag.onmouseleave = () => {
@@ -580,12 +587,12 @@ export default class SMSEditorCtrl {
 			if (this.isPercentInput(currentTag)) {
 				return;
 			}
-			this.setToolTip(currentTag, false);
+			this.setToolTip(currentTag, false, onpaste);
 		};
 	}
 	isPercentInput(currentTag) {
 		const text = currentTag.innerText;
-		if (this.includedShortLink(text) === '%' && text.endsWith('%')) {
+		if (this.inCludedPercentShortLink(text) === '%' && text.endsWith('%')) {
 			return true;
 		}
 		return false;
@@ -615,7 +622,7 @@ export default class SMSEditorCtrl {
 	 * @param tag 包含短链内容的元素
 	 * @param showFlag 是否显示
 	 */
-	setToolTip(currentTag, showFlag) {
+	setToolTip(currentTag, showFlag, onpaste) {
 		const UI_SPACE_TOP = 6;
 		const UI_SPACE_LEFT = 6;
 		const MAX_PARENT_HEIGHT = 160;
@@ -624,43 +631,45 @@ export default class SMSEditorCtrl {
 		const isPercent = this.isPercentInput(currentTag);
 		const TIP_WIDTH = window.getComputedStyle(tip).getPropertyValue('width').split('px')[0] * 1 + window.getComputedStyle(tip).getPropertyValue('padding-right').split('px')[0] * 1;
 		const TIP_HEIGHT = window.getComputedStyle(tip).getPropertyValue('height').split('px')[0] * 1 + window.getComputedStyle(tip).getPropertyValue('padding-top').split('px')[0] * 2 + UI_SPACE_TOP;
-		// const showTip = this._$timeout(() => {
-		// this._$timeout.cancel(showTip);
-		if (isPercent) {
-			if (!this.trulyHide) {
-				this.showPercentTips = showFlag;
+		const showTip = this._$timeout(() => {
+			this._$timeout.cancel(showTip);
+			if (isPercent) {
+				if (!this.trulyHide) {
+					this.showPercentTips = showFlag;
+				}
+				if (!onpaste) {
+					this.showTips = false;
+				}
+			} else {
+				this.showTips = showFlag;
 			}
-			this.showTips = false;
-		} else {
-			this.showTips = showFlag;
-		}
-		if (this.showTips) {
-			const tipPosition = this.positionCompute(currentTag, parentEle, TIP_WIDTH);
-			this.tipsPosition = {
-				left: tipPosition.newLeft + 'px',
-				top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - TIP_HEIGHT + 'px' : currentTag.offsetTop - TIP_HEIGHT + 'px'
-			};
-			this.angleStyle = {
-				left: tipPosition.angleLeft + 'px'
-			};
-		}
-		if (this.showPercentTips && isPercent) {
-			const percentTip = document.getElementById('percentTip');
-			const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
-			const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 114;
-			const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
-			const osTop = currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT >= MAX_PARENT_HEIGHT
-						? MAX_PARENT_HEIGHT
-						: currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT;
-			this.percentTipsPosition = {
-				left: tipPercentPosition.newLeft - UI_SPACE_LEFT + 'px',
-				top: parentEle.scrollTop > 0 ? osTop + 'px' : currentTag.offsetTop - PER_TIP_HEIGHT + 'px'
-			};
-			this.anglePercentStyle = {
-				left: tipPercentPosition.angleLeft + 'px'
-			};
-		}
-		// }, 0);
+			if (this.showTips && !isPercent) {
+				const tipPosition = this.positionCompute(currentTag, parentEle, TIP_WIDTH);
+				this.tipsPosition = {
+					left: tipPosition.newLeft + 'px',
+					top: parentEle.scrollTop > 0 ? currentTag.offsetTop - parentEle.scrollTop - TIP_HEIGHT + 'px' : currentTag.offsetTop - TIP_HEIGHT + 'px'
+				};
+				this.angleStyle = {
+					left: tipPosition.angleLeft + 'px'
+				};
+			}
+			if (this.showPercentTips && isPercent) {
+				const percentTip = document.getElementById('percentTip');
+				const PER_TIP_WIDTH = window.getComputedStyle(percentTip).getPropertyValue('width').split('px')[0] * 1;
+				const PER_TIP_HEIGHT = window.getComputedStyle(percentTip).getPropertyValue('height').split('px')[0] * 1 - 114;
+				const tipPercentPosition = this.positionCompute(currentTag, parentEle, PER_TIP_WIDTH);
+				const osTop = currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT >= MAX_PARENT_HEIGHT
+							? MAX_PARENT_HEIGHT
+							: currentTag.offsetTop - parentEle.scrollTop - PER_TIP_HEIGHT;
+				this.percentTipsPosition = {
+					left: tipPercentPosition.newLeft - UI_SPACE_LEFT + 'px',
+					top: parentEle.scrollTop > 0 ? osTop + 'px' : currentTag.offsetTop - PER_TIP_HEIGHT + 'px'
+				};
+				this.anglePercentStyle = {
+					left: tipPercentPosition.angleLeft + 'px'
+				};
+			}
+		}, 0);
 	}
 
 	positionCompute(currentTag, parentEle, tipWidth) {
@@ -693,36 +702,29 @@ export default class SMSEditorCtrl {
 			htmlContent = event.clipboardData.getData('text/html');
 		if (htmlContent.indexOf('sms-keyword-inserted') > -1 || htmlContent.indexOf('data-emo-name') > -1) return;
 		e.preventDefault();
+		this.isPasting = true;
 		const textContent = event.clipboardData.getData('text/plain');
-		const selection = document.getSelection();
 		let shortLinkHead = this.includedShortLink(textContent);
-		if ((this.opts.shortLinkTip || this.opts.shortLinkPercentTip) && shortLinkHead) {
-			let index1 = -1;
-			let index2 = -1;
-			let shortLinks = '';
-			if (textContent.indexOf('%') > -1) {
-				index1 = textContent.indexOf('%');
-				shortLinks = textContent.substr(index1, 1);
+		let percentLinkHead = this.inCludedPercentShortLink(textContent);
+		if (shortLinkHead || percentLinkHead) {
+			document.execCommand('insertHTML', false, `<span id=${new Date().getTime()}>${textContent}</span>`);
+			if (this.opts.shortLinkTip && shortLinkHead) {
+				const {index, value} = this.getShortLinkParts(textContent);
+				if (index > -1) {
+					this.showTips = true;
+					const selection = document.getSelection();
+					const startSetOff = selection.focusNode.textContent.indexOf(value);
+					this.transformToATag(selection, startSetOff, value.length, true);
+				}
 			}
-			if (textContent.indexOf('c.tb.cn') > -1) {
-				index2 = textContent.indexOf('c.tb.cn');
-				shortLinkHead = textContent.substr(index2, 7);
-			} else if (textContent.indexOf('vcrm.me') > -1) {
-				index2 = textContent.indexOf('vcrm.me');
-				shortLinkHead = textContent.substr(index2, 6);
-			} else if (textContent.indexOf('t.cn') > -1) {
-				index2 = textContent.indexOf('t.cn');
-				shortLinkHead = textContent.substr(index2, 4);
-			}
-			if (index1 > -1) {
-				document.execCommand('insertHTML', false, `<span>${shortLinks}</span>`);
-				const startSetOff = selection.focusNode.textContent.indexOf(shortLinks);
-				this.transformToATag(selection, startSetOff, shortLinks.length);
-			}
-			if (index2 > -1) {
-				document.execCommand('insertHTML', false, `<span>${shortLinkHead}</span>`);
-				const startSetOff = selection.focusNode.textContent.indexOf(shortLinkHead);
-				this.transformToATag(selection, startSetOff, shortLinkHead.length);
+			if (this.opts.shortLinkPercentTip && percentLinkHead) {
+				const {index, value} = this.getPercentLinkParts(textContent);
+				if (index > -1) {
+					this.showPercentTips = true;
+					const selection = document.getSelection();
+					const startSetOff = selection.focusNode.textContent.indexOf(value);
+					this.transformToATag(selection, startSetOff, value.length, true);
+				}
 			}
 		} else {
 			this._hasInvalidStr = BRACKET_REG.test(textContent);
@@ -730,10 +732,38 @@ export default class SMSEditorCtrl {
 			document.execCommand('insertText', false, textContent.replace(BRACKET_REG, ''));
 		}
 	}
+	getPercentLinkParts(textContent) {
+		let index = -1;
+		let value = '';
+		const i_percent = textContent.indexOf('%');
+		if (i_percent > -1) {
+			index = i_percent;
+			value = textContent.substr(index, 1);
+		}
+		return {index, value};
+	}
+	getShortLinkParts(textContent) {
+		let index = -1;
+		let value = '';
+		const i_c_tb_cn = textContent.indexOf('c.tb.cn');
+		const i_vcrm_me = textContent.indexOf('vcrm.me');
+		const i_t_cn = textContent.indexOf('t.cn');
+		if (i_c_tb_cn > -1) {
+			index = i_c_tb_cn;
+			value = textContent.substr(index, 7);
+		} else if (i_vcrm_me > -1) {
+			index = i_vcrm_me;
+			value = textContent.substr(index, 6);
+		} else if (i_t_cn > -1) {
+			index = i_t_cn;
+			value = textContent.substr(index, 4);
+		}
+		return {index, value};
+	}
 	checkoutShortLink() {
 		if (this.opts.shortLinkTip || this.opts.shortLinkPercentTip) {
 			window.requestAnimationFrame(() => {
-				if (!this.includedShortLink(this._content.innerHTML)) {
+				if (!this.includedShortLink(this._content.innerHTML) && !this.inCludedPercentShortLink(this._content.innerHTML)) {
 					this.showTips = false;
 					if (this._$scope.$$phase) {
 						this._$scope.$applyAsync();
@@ -743,7 +773,7 @@ export default class SMSEditorCtrl {
 					return;
 				}
 				const selection = document.getSelection();
-				const shortLinkHead = this.includedShortLink(selection.focusNode.textContent);
+				const shortLinkHead = this.includedShortLink(selection.focusNode.textContent) || this.inCludedPercentShortLink(selection.focusNode.textContent);
 				const startOffset = selection.focusNode.textContent.indexOf(shortLinkHead);
 				if (startOffset === -1) {
 					this.showTips = false;
@@ -757,30 +787,36 @@ export default class SMSEditorCtrl {
 				if (selection.focusNode.parentNode.nodeName.toUpperCase() === 'A' || selection.focusNode.className === 'sms-content') {
 					return;
 				}
-				this.transformToATag(selection, startOffset, shortLinkHead.length);
+				this.transformToATag(selection, startOffset, shortLinkHead.length, this.isPasting);
+				this._$timeout(() => {
+					this.isPasting = false;
+				}, 100);
 			});
 		}
 	}
 
-	transformToATag(selection, startOffset, contentLength) {
+	transformToATag(selection, startOffset, contentLength, onpaste) {
 		const insertRange = document.createRange();
 		insertRange.setStart(selection.focusNode, startOffset);
 		insertRange.setEnd(selection.focusNode, startOffset + contentLength);
 		selection.removeAllRanges();
 		selection.addRange(insertRange);
-		document.execCommand('CreateLink', false, ' ');
+		document.execCommand('CreateLink', false, new Date().getTime());
 		const currentNode = selection.focusNode.parentNode;
-		this.handleTooltip(currentNode);
+		this.handleTooltip(currentNode, undefined, onpaste);
 		if (currentNode.nextSibling) {
 			selection.collapse(currentNode.nextSibling, currentNode.nextSibling.length);
 		} else {
 			selection.collapse(selection.focusNode, selection.focusOffset);
 		}
 	}
-	includedShortLink(string) {
+	inCludedPercentShortLink(string) {
 		if (string.indexOf('%') > -1) {
 			return '%';
 		}
+		return false;
+	}
+	includedShortLink(string) {
 		if (string.indexOf('c.tb.cn') > -1) {
 			return 'c.tb.cn';
 		}

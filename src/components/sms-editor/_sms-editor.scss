@@ -74,9 +74,9 @@
   top: 0px;
   z-index: 99;
   background: #fff;
-  .angle {
+  .angle,
+  .top-angle {
     position: absolute;
-    bottom: -6px;
     left: 20px;
     border-top: none;
     border-left: none;
@@ -85,26 +85,17 @@
     width: 12px;
     height: 12px;
     content: ' ';
-    transform: rotate(45deg);
     border: 1px solid transparent;
     background-color: #fff;
     box-sizing: border-box;
   }
+  .angle {
+    bottom: -6px;
+    transform: rotate(45deg);
+  }
   .top-angle {
-    position: absolute;
     top: -6px;
-    left: 20px;
-    border-top: none;
-    border-left: none;
-    box-shadow: 1px 1px 1px rgba(0,0,0,0.1);
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    content: ' ';
     transform: rotate(-135deg);
-    border: 1px solid transparent;
-    background-color: #fff;
-    box-sizing: border-box;
   }
 }
 .short-link-percent-tip {
