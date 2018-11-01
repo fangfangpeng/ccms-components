@@ -496,9 +496,9 @@ export default class SMSEditorCtrl {
 	 * 文本修改后, 重置预览文本和最终结果
 	 * - !!! 输入时, 过滤【 和 】
 	 */
-	onChange(evt) {
+	onChange($event) {
 		this.rememberFocus();
-		this.checkoutShortLink(evt);
+		this.shoudCheckShortLink($event);
 		if (BRACKET_REG.test(this._content.innerHTML)) {
 
 			// 记录初始光标
@@ -552,6 +552,16 @@ export default class SMSEditorCtrl {
 			this.parseHTML();
 			this.checkEmpty();
 			this._hasUrl = REG_URL.test(this.opts.text) && !REG_URL_HASH.test(this.opts.text);
+		}
+	}
+
+	/**
+	 * 是否需要短鏈檢查
+	 * @param $event 中英輸入法下，對百分號可以進行檢查
+	 */
+	shoudCheckShortLink($event) {
+		if ($event.type === 'input' && $event.data === '%') {
+			this.checkoutShortLink();
 		}
 	}
 
@@ -704,33 +714,57 @@ export default class SMSEditorCtrl {
 		e.preventDefault();
 		this.isPasting = true;
 		const textContent = event.clipboardData.getData('text/plain');
+		const selection = document.getSelection();
 		let shortLinkHead = this.includedShortLink(textContent);
 		let percentLinkHead = this.inCludedPercentShortLink(textContent);
 		if (shortLinkHead || percentLinkHead) {
 			document.execCommand('insertHTML', false, `<span id=${new Date().getTime()}>${textContent}</span>`);
-			if (this.opts.shortLinkTip && shortLinkHead) {
-				const {index, value} = this.getShortLinkParts(textContent);
-				if (index > -1) {
-					this.showTips = true;
-					const selection = document.getSelection();
-					const startSetOff = selection.focusNode.textContent.indexOf(value);
-					this.transformToATag(selection, startSetOff, value.length, true);
-				}
-			}
-			if (this.opts.shortLinkPercentTip && percentLinkHead) {
-				const {index, value} = this.getPercentLinkParts(textContent);
-				if (index > -1) {
-					this.showPercentTips = true;
-					const selection = document.getSelection();
-					const startSetOff = selection.focusNode.textContent.indexOf(value);
-					this.transformToATag(selection, startSetOff, value.length, true);
-				}
-			}
+			this.execShortLinkInsert(selection, textContent, percentLinkHead, shortLinkHead);
 		} else {
 			this._hasInvalidStr = BRACKET_REG.test(textContent);
 			this._invalidStrClosed = !this._hasInvalidStr;
 			document.execCommand('insertText', false, textContent.replace(BRACKET_REG, ''));
 		}
+	}
+	execShortLinkInsert(selection, textContent, percentLinkHead, shortLinkHead) {
+		const proiority = this.getExecPriority(textContent);
+		if (proiority) {
+			if (percentLinkHead) {
+				this.execShortLinkPercentCommand(textContent, selection);
+			}
+			if (shortLinkHead) {
+				this.execShortLinkCommand(textContent, selection);
+			}
+		} else {
+			if (shortLinkHead) {
+				this.execShortLinkCommand(textContent, selection);
+			}
+			if (percentLinkHead) {
+				this.execShortLinkPercentCommand(textContent, selection);
+			}
+		}
+	}
+	execShortLinkCommand(textContent, selection) {
+		const {index, value} = this.getShortLinkParts(textContent);
+		if (index > -1) {
+			const startSetOff = selection.focusNode.textContent.indexOf(value);
+			this.transformToATag(selection, startSetOff, value.length, true);
+		}
+	}
+	execShortLinkPercentCommand(textContent, selection) {
+		const {index, value} = this.getPercentLinkParts(textContent);
+		if (index > -1) {
+			const startSetOff = selection.focusNode.textContent.indexOf(value);
+			this.transformToATag(selection, startSetOff, value.length, true);
+		}
+	}
+	getExecPriority(textContent) {
+		const percentIndex = textContent.indexOf('%');
+		const i_c_tb_cn = textContent.indexOf('c.tb.cn');
+		const i_vcrm_me = textContent.indexOf('vcrm.me');
+		const i_t_cn = textContent.indexOf('t.cn');
+		const data = [i_c_tb_cn, i_vcrm_me, i_t_cn].filter(item => item > -1);
+		return percentIndex < Math.min(data);
 	}
 	getPercentLinkParts(textContent) {
 		let index = -1;
