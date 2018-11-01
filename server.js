@@ -30,7 +30,7 @@ app.use(require('webpack-hot-middleware')(compiler));
 app.use(jsonServer.defaults({static: path.resolve(__dirname)}));
 app.use('/api', jsonServer.proxy('http://localhost', 8989));
 
-const port = 3003;
+const port = 3000;
 const host = '0.0.0.0';
 app.listen(port, host, function(err) {
 	if (err) {
