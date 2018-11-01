@@ -542,12 +542,6 @@ export default class SMSEditorCtrl {
 			}
 
 			selection.addRange(range);
-			if (!this.includedShortLink(this._content.innerHTML)) {
-				this.showTips = false;
-			}
-			if (!this.inCludedPercentShortLink(this._content.innerHTML)) {
-				this.showPercentTips = false;
-			}
 		} else {
 			this.parseHTML();
 			this.checkEmpty();
